@@ -1,0 +1,75 @@
+---
+title: "Untitled"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+btc = read.csv("btcusdt1h.csv")
+btc$perc = (btc$close-btc$open)/btc$open*100
+```
+
+
+```{r}
+dat = btc$perc[1:15000]
+#dat = observations[1:1000]
+
+btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.6,0.2,0.2), window=0.05)
+
+dens = dnorm
+
+parlist = list(
+  tpm=matrix(c(0.4, 0.3, 0.3,
+               0.3, 0.4, 0.3,
+               0.3, 0.3, 0.4), 3, 3, byrow=T),
+  mean = c(-0.1 ,0, 0.1),
+  sd = c(1, 1, 1)
+)
+
+mean.fn = function(mean, ...){return(mean)}
+var.fn = function(sd, ...){return(sd^2)}
+
+for (i in 1:btc_CV$nsteps){
+  train.ind = btc_CV$sets[[i]]$train_window
+  val.ind = btc_CV$sets[[i]]$val_window
+  train.set = dat[train.ind]
+  val.set = dat[val.ind]
+  
+  hmm = hmm.fit(train.set, parlist, np2wp.fn, wp2np.fn, mean.fn, var.fn, dens)
+  print(hmm)
+  
+  train.forecast = hmm.forecast(train.set, 1, hmm)
+  y.hat.train = train.forecast$y.hat
+  delta = train.forecast$delta
+  #need to shift the predictions and actual so the indices match
+  y.hat.train = y.hat.train[1:(length(y.hat.train)-1)]
+  y.actual.train = train.set[2:length(train.set)]
+  train.mse = mean((y.hat.train-y.actual.train)^2)
+  train.rand = mean((y.actual.train-mean(y.actual.train))^2)
+  
+  val.forecast = hmm.forecast(val.set, 1, hmm, delta.curr=delta)
+  y.hat.val = val.forecast$y.hat
+  y.hat.val = y.hat.val[1:(length(y.hat.val)-1)]
+  y.actual.val= val.set[2:length(val.set)]
+  val.mse = mean((y.hat.val-y.actual.val)^2)
+  val.rand = mean((y.actual.val-mean(y.actual.train))^2)
+  
+  print((paste("Fold", i)))
+  print(paste("train mse:", train.mse))
+  print(paste("train mse rand:", train.rand))
+  print(paste("val mse:", val.mse))
+  print(paste("val mse rand:", val.rand))
+
+}
+
+```
+
+
+
+
+
+
+

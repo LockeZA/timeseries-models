@@ -1,0 +1,59 @@
+---
+title: "btc_eda"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+```
+
+
+
+```{r}
+btc = read.csv("btcusdt1h.csv")
+```
+
+```{r}
+ggplot(btc, aes(x=as.Date(open_time), y=close)) + geom_line()
+```
+
+
+```{r}
+btc$pchange = (btc$close-btc$open)
+btc$perc = btc$pchange/btc$open
+ggplot(btc, aes(x=as.Date(open_time), y=pchange)) + geom_line()
+```
+
+```{r}
+ggplot(btc, aes(x=as.Date(open_time), y=perc)) + geom_line()
+```
+
+```{r}
+ggplot(btc, aes(x=(perc/sqrt(abs(perc))))) + geom_histogram(color="black", fill="white", bins=100)
+```
+
+```{r}
+btc$scaled_perc = btc$perc/abs(btc$perc)*(log(sqrt(abs(btc$perc))))
+
+
+ggplot(btc, aes(x=scaled_perc))+ geom_histogram(color="black", fill="white", bins=100)
+```
+
+```{r}
+ggplot(btc, aes(x=as.Date(open_time), y=scaled_perc)) + geom_point()
+```
+
+
+
+```{r}
+btc$ma_perc = stats::filter(btc$scaled_perc, rep(1/100, 100),method="convolution", sides=2)
+ggplot(btc, aes(x=as.Date(open_time), y=ma_perc)) + geom_point()
+
+```
+
+?filter
+
