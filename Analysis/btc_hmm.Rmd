@@ -8,29 +8,50 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-btc = read.csv("btcusdt1h.csv")
+btc = read.csv("btcusdt6h.csv")
 btc$perc = (btc$close-btc$open)/btc$open*100
+```
+
+```{r}
+
+t3 = function(x, mu, v, k){
+  num = gamma((v+1)/2)
+  den = k*sqrt(pi*v)*gamma(v/2)*(1+((x-mu)/k)^2/v)^((v+1)/2)
+  return(num/den)
+}
+
+#x = seq(-10, 30, length=100)
+#y = unlist(lapply(x, t3, mu=0, v=280, k=2))
+#plot(x, y)
 ```
 
 
 ```{r}
-dat = btc$perc[1:15000]
+dat = btc$perc
 #dat = observations[1:1000]
 
-btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.6,0.2,0.2), window=0.05)
+btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.85,0.1,0.1), window=0.01)
 
-dens = dnorm
+dens = t3
+
+nstates = 2
 
 parlist = list(
-  tpm=matrix(c(0.4, 0.3, 0.3,
-               0.3, 0.4, 0.3,
-               0.3, 0.3, 0.4), 3, 3, byrow=T),
-  mean = c(-0.1 ,0, 0.1),
-  sd = c(1, 1, 1)
+  tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
+  mu = runif(nstates, -5, 5),
+  v = rep(6, nstates),
+  k = rep(10, nstates)
 )
 
-mean.fn = function(mean, ...){return(mean)}
-var.fn = function(sd, ...){return(sd^2)}
+#specify the transformations between natural and working parameters
+np2wp.fn = list(tpm=tpm.np2wp, v=exp.np2wp, k=exp.np2wp)
+wp2np.fn = list(tpm=tpm.wp2np, v=exp.wp2np, k=exp.wp2np)
+
+mean.fn = function(mu, ...){return(mu)}
+var.fn = function(k, v, ...){return(k^2*v/(v-2))}
+
+cv.mse = 0
+cv.0 = 0
 
 for (i in 1:btc_CV$nsteps){
   train.ind = btc_CV$sets[[i]]$train_window
@@ -48,28 +69,52 @@ for (i in 1:btc_CV$nsteps){
   y.hat.train = y.hat.train[1:(length(y.hat.train)-1)]
   y.actual.train = train.set[2:length(train.set)]
   train.mse = mean((y.hat.train-y.actual.train)^2)
-  train.rand = mean((y.actual.train-mean(y.actual.train))^2)
+  train.0 = mean((y.actual.train-0)^2)
   
   val.forecast = hmm.forecast(val.set, 1, hmm, delta.curr=delta)
   y.hat.val = val.forecast$y.hat
   y.hat.val = y.hat.val[1:(length(y.hat.val)-1)]
   y.actual.val= val.set[2:length(val.set)]
   val.mse = mean((y.hat.val-y.actual.val)^2)
-  val.rand = mean((y.actual.val-mean(y.actual.train))^2)
+  val.0 = mean((y.actual.val-0)^2)
+  cv.mse = cv.mse + val.mse
+  cv.0 = cv.0 + val.0
   
   print((paste("Fold", i)))
   print(paste("train mse:", train.mse))
-  print(paste("train mse rand:", train.rand))
+  print(paste("train mse rand:", train.0))
   print(paste("val mse:", val.mse))
-  print(paste("val mse rand:", val.rand))
+  print(paste("val mse rand:", val.0))
+  
+  #store parlist for next iteration to use as new first guess
+  parlist=list(
+  tpm=hmm$tpm,
+  mu=hmm$state.params$mu,
+  v=hmm$state.params$v,
+  k=hmm$state.params$k
+)
 
 }
+
+print(paste("Final CV mse:", cv.mse/btc_CV$nsteps))
+print(paste("Final CV mse just 0:", cv.0/btc_CV$nsteps))
 
 ```
 
 
 
 
+```{r}
+#wot
 
+#2
+
+
+# 3
+# "Final CV mse: 2.56670415783792"
+# "Final CV mse just 0: 2.57494999976947"
+
+
+```
 
 
