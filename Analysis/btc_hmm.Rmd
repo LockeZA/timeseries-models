@@ -8,8 +8,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-btc = read.csv("btcusdt6h.csv")
-btc$perc = (btc$close-btc$open)/btc$open*100
+install.packages("varhandle")
+library(varhandle)
+
+```
+
+```{r}
+snp = read.csv("snp500weekly.csv")
+#btc$perc = (btc$close-btc$open)/btc$open*100
+snp$perc = (snp$Close-snp$Open)/snp$Open*100
+hist(snp$perc, breaks=200)
+
 ```
 
 ```{r}
@@ -25,11 +34,11 @@ t3 = function(x, mu, v, k){
 
 
 ```{r}
-dat = btc$perc
+dat = snp$perc
 #dat = observations[1:1000]
-btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.85,0.1,0.1), window=0.01)
+btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
 dens = t3
-nstates = 2
+nstates = 5
 parlist = list(
   tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
   mu = runif(nstates, -5, 5),
@@ -87,3 +96,31 @@ for (i in 1:btc_CV$nsteps){
 print(paste("Final CV mse:", cv.mse/btc_CV$nsteps))
 print(paste("Final CV mse just 0:", cv.0/btc_CV$nsteps))
 ```
+
+
+```{r}
+#2 states (t dist)
+"Final CV mse: 2.34762934598386"
+"Final CV mse just 0: 2.33161968345263"
+
+#3 states (t dist)
+"Final CV mse: 2.37948183452143"
+"Final CV mse just 0: 2.33161968345263"
+
+#4 states (t dist)
+"Final CV mse: 2.29515086726578"
+"Final CV mse just 0: 2.33161968345263"
+
+#5 states (t dist)
+"Final CV mse: 2.30859536973007"
+"Final CV mse just 0: 2.33161968345263"
+
+
+
+```
+
+
+
+
+
+
