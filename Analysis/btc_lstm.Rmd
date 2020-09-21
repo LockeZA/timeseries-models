@@ -1,0 +1,73 @@
+---
+title: "btc_lstm"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+btc = read.csv("btcusdt6h.csv")
+btc$perc = (btc$close-btc$open)/btc$open*100
+```
+
+
+```{r}
+dat = btc$perc
+#dat = observations[1:1000]
+
+btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.6,0.3,0.1), window=0.05)
+
+hidden.size = 1
+lstm = init.lstm(1, hidden.size)
+cv.mse = 0
+cv.0 = 0
+
+for (i in 1:btc_CV$nsteps){
+  train.ind = btc_CV$sets[[i]]$train_window
+  val.ind = btc_CV$sets[[i]]$val_window
+  train.set = dat[train.ind]
+  val.set = dat[val.ind]
+  
+  N = length(train.set)
+  
+  y.train = train.set[2:N]
+  X.train = train.set[1:(N-1)]
+  X.train = matrix(X.train, ncol=1)
+  
+  fit = lstm.fit(y.train, X.train, lstm)
+  lstm = fit$LSTM
+  train.mse = fit$MSE
+  
+  train.states = lstm.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size)
+  h = train.states$hs[nrow(train.states$hs), ]
+  C = train.states$Cs[nrow(train.states$Cs), ]
+  
+  h = matrix(h, nrow=1)
+  C = matrix(C, nrow=1)
+  
+  N = length(val.set)
+  y.val = val.set[2:N]
+  X.val = val.set[1:(N-1)]
+  X.val = matrix(X.val, ncol=1)
+  
+  val.states = lstm.forward.pass(as.matrix(X.val, ncol=1), lstm, hidden.size, h=h, C=C)
+  val.mse = mean((y.val-val.states$yhat)^2)
+  
+  train.0 = mean((y.train-0)^2)
+  val.0 = mean((y.val-0)^2)
+  
+  cv.mse = cv.mse + val.mse
+  cv.0 = cv.0 + val.0
+  
+  print((paste("Fold", i)))
+  print(paste("train mse:", train.mse))
+  print(paste("train mse rand:", train.0))
+  print(paste("val mse:", val.mse))
+  print(paste("val mse rand:", val.0))
+  break
+}
+print(paste("Final CV mse:", cv.mse/btc_CV$nsteps))
+print(paste("Final CV mse just 0:", cv.0/btc_CV$nsteps))
+```

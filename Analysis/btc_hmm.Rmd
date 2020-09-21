@@ -1,6 +1,6 @@
 ---
-title: "Untitled"
-output: pdf_document
+title: "btc_hmm"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,13 +13,11 @@ btc$perc = (btc$close-btc$open)/btc$open*100
 ```
 
 ```{r}
-
 t3 = function(x, mu, v, k){
   num = gamma((v+1)/2)
   den = k*sqrt(pi*v)*gamma(v/2)*(1+((x-mu)/k)^2/v)^((v+1)/2)
   return(num/den)
 }
-
 #x = seq(-10, 30, length=100)
 #y = unlist(lapply(x, t3, mu=0, v=280, k=2))
 #plot(x, y)
@@ -29,30 +27,22 @@ t3 = function(x, mu, v, k){
 ```{r}
 dat = btc$perc
 #dat = observations[1:1000]
-
 btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.85,0.1,0.1), window=0.01)
-
 dens = t3
-
 nstates = 2
-
 parlist = list(
   tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
   mu = runif(nstates, -5, 5),
   v = rep(6, nstates),
   k = rep(10, nstates)
 )
-
 #specify the transformations between natural and working parameters
 np2wp.fn = list(tpm=tpm.np2wp, v=exp.np2wp, k=exp.np2wp)
 wp2np.fn = list(tpm=tpm.wp2np, v=exp.wp2np, k=exp.wp2np)
-
 mean.fn = function(mu, ...){return(mu)}
 var.fn = function(k, v, ...){return(k^2*v/(v-2))}
-
 cv.mse = 0
 cv.0 = 0
-
 for (i in 1:btc_CV$nsteps){
   train.ind = btc_CV$sets[[i]]$train_window
   val.ind = btc_CV$sets[[i]]$val_window
@@ -93,28 +83,7 @@ for (i in 1:btc_CV$nsteps){
   v=hmm$state.params$v,
   k=hmm$state.params$k
 )
-
 }
-
 print(paste("Final CV mse:", cv.mse/btc_CV$nsteps))
 print(paste("Final CV mse just 0:", cv.0/btc_CV$nsteps))
-
 ```
-
-
-
-
-```{r}
-#wot
-
-#2
-
-
-# 3
-# "Final CV mse: 2.56670415783792"
-# "Final CV mse just 0: 2.57494999976947"
-
-
-```
-
-
