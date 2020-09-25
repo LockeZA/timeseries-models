@@ -18,7 +18,9 @@ snp = read.csv("snp500weekly.csv")
 #btc$perc = (btc$close-btc$open)/btc$open*100
 snp$perc = (snp$Close-snp$Open)/snp$Open*100
 hist(snp$perc, breaks=200)
-
+```
+```{r}
+snp$perc = round(snp$perc, 2)
 ```
 
 ```{r}
@@ -27,18 +29,20 @@ t3 = function(x, mu, v, k){
   den = k*sqrt(pi*v)*gamma(v/2)*(1+((x-mu)/k)^2/v)^((v+1)/2)
   return(num/den)
 }
-#x = seq(-10, 30, length=100)
-#y = unlist(lapply(x, t3, mu=0, v=280, k=2))
-#plot(x, y)
+x = seq(-10, 30, length=100)
+y = unlist(lapply(x, t3, mu=0, v=300, k=5))
+plot(x, y)
 ```
 
 
 ```{r}
+#set seed for reproducibility
+set.seed(2020)
 dat = snp$perc
 #dat = observations[1:1000]
-btc_CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
+CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
 dens = t3
-nstates = 5
+nstates = 7
 parlist = list(
   tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
   mu = runif(nstates, -5, 5),
@@ -52,9 +56,9 @@ mean.fn = function(mu, ...){return(mu)}
 var.fn = function(k, v, ...){return(k^2*v/(v-2))}
 cv.mse = 0
 cv.0 = 0
-for (i in 1:btc_CV$nsteps){
-  train.ind = btc_CV$sets[[i]]$train_window
-  val.ind = btc_CV$sets[[i]]$val_window
+for (i in 1:CV$nsteps){
+  train.ind = CV$sets[[i]]$train_window
+  val.ind = CV$sets[[i]]$val_window
   train.set = dat[train.ind]
   val.set = dat[val.ind]
   
@@ -93,34 +97,59 @@ for (i in 1:btc_CV$nsteps){
   k=hmm$state.params$k
 )
 }
-print(paste("Final CV mse:", cv.mse/btc_CV$nsteps))
-print(paste("Final CV mse just 0:", cv.0/btc_CV$nsteps))
+print(paste("Final CV mse:", cv.mse/CV$nsteps))
+print(paste("Final CV mse just 0:", cv.0/CV$nsteps))
 ```
 
 
 ```{r}
-#2 states (t dist)
-"Final CV mse: 2.34762934598386"
-"Final CV mse just 0: 2.33161968345263"
+set.seed(2020)
 
-#3 states (t dist)
-"Final CV mse: 2.37948183452143"
-"Final CV mse just 0: 2.33161968345263"
+nstates = 6
+parlist = list(
+  tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
+  mu = runif(nstates, -5, 5),
+  v = rep(6, nstates),
+  k = rep(10, nstates)
+)
 
-#4 states (t dist)
-"Final CV mse: 2.29515086726578"
-"Final CV mse just 0: 2.33161968345263"
+test.ind = CV$test_set$test_window
 
-#5 states (t dist)
-"Final CV mse: 2.30859536973007"
-"Final CV mse just 0: 2.33161968345263"
+train.set = dat[-test.ind]
+test.set = dat[test.ind]
+
+hmm = hmm.fit(train.set, parlist, np2wp.fn, wp2np.fn, mean.fn, var.fn, dens)
+print(hmm)
+
+train.forecast = hmm.forecast(train.set, 1, hmm)
+y.hat.train = train.forecast$y.hat
+delta = train.forecast$delta
+#need to shift the predictions and actual so the indices match
+y.hat.train = y.hat.train[1:(length(y.hat.train)-1)]
+y.actual.train = train.set[2:length(train.set)]
+train.mse = mean((y.hat.train-y.actual.train)^2)
+train.0 = mean((y.actual.train-0)^2)
+
+train.mse
+
+test.forecast = hmm.forecast(test.set, 1, hmm, delta.curr=delta)
+y.hat.test = test.forecast$y.hat
+y.hat.test = y.hat.test[1:(length(y.hat.test)-1)]
+y.actual.test= test.set[2:length(test.set)]
+test.mse = mean((y.hat.test-y.actual.test)^2)
+
+test.mse
+mean(y.actual.test^2)
+```
+
+```{r}
+
+
+round(hmm$tpm, 3)
+
 
 
 
 ```
 
-
-
-
-
-
+Use seed 2021 for 6 states

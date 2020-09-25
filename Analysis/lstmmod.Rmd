@@ -1,5 +1,5 @@
 ---
-title: "btc_lstm"
+title: "lstmmod"
 output: pdf_document
 ---
 
@@ -14,16 +14,18 @@ snp$perc = (snp$Close-snp$Open)/snp$Open*100
 hist(snp$perc, breaks=200)
 ```
 
-
 ```{r}
-set.seed(1)
+set.seed(2020)
 dat = snp$perc
-#dat = observations[1:1000]
+#dat = observations[1:100]
 
 CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
 
-hidden.size = 1
-lstm = init.lstm(1, hidden.size)
+hidden.size = 3
+delta.hidden.size = 3
+delta.size = 3
+
+lstm = init.lstm.mod(1, hidden.size, delta.hidden.size, delta.size)
 cv.mse = 0
 cv.0 = 0
 
@@ -39,27 +41,27 @@ for (i in 1:CV$nsteps){
   X.train = train.set[1:(N-1)]
   X.train = matrix(X.train, ncol=1)
   
-  fit = lstm.fit(y.train, X.train, lstm)
+  fit = lstm.mod.fit(y.train, X.train, lstm)
   lstm = fit$LSTM
-  train.mse = fit$MSE
   
-  train.states = lstm.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size)
+  train.states = lstm.mod.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size, delta.size)
   h = train.states$hs[nrow(train.states$hs), ]
   C = train.states$Cs[nrow(train.states$Cs), ]
   
   h = matrix(h, nrow=1)
   C = matrix(C, nrow=1)
+  train.mse = mean((train.states$yhat[1:(N-1)]-y.train)^2)
   
   N = length(val.set)
   y.val = val.set[2:N]
   X.val = val.set[1:(N-1)]
   X.val = matrix(X.val, ncol=1)
   
-  val.states = lstm.forward.pass(as.matrix(X.val, ncol=1), lstm, hidden.size, h=h, C=C)
+  val.states = lstm.mod.forward.pass(as.matrix(X.val, ncol=1), lstm, hidden.size, delta.size, h=h, C=C)
   val.mse = mean((y.val-val.states$yhat)^2)
   
-  train.0 = mean((y.train-0)^2)
-  val.0 = mean((y.val-0)^2)
+  train.0 = mean((y.train)^2)
+  val.0 = mean((y.val)^2)
   
   cv.mse = cv.mse + val.mse
   cv.0 = cv.0 + val.0
@@ -73,56 +75,5 @@ for (i in 1:CV$nsteps){
 print(paste("Final CV mse:", cv.mse/CV$nsteps))
 print(paste("Final CV mse just 0:", cv.0/CV$nsteps))
 ```
-
-
-```{r}
-set.seed(1)
-hidden.size=1
-
-test.ind = CV$test_set$test_window
-
-train.set = dat[-test.ind]
-test.set = dat[test.ind]
-
-N = length(train.set)
-
-y.train = train.set[2:N]
-X.train = train.set[1:(N-1)]
-X.train = matrix(X.train, ncol=1)
-
-fit = lstm.fit(y.train, X.train, lstm)
-lstm = fit$LSTM
-train.mse = fit$MSE
-
-train.states = lstm.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size)
-h = train.states$hs[nrow(train.states$hs), ]
-C = train.states$Cs[nrow(train.states$Cs), ]
-
-h = matrix(h, nrow=1)
-C = matrix(C, nrow=1)
-
-N = length(test.set)
-y.test = test.set[2:N]
-X.test = test.set[1:(N-1)]
-X.test = matrix(X.test, ncol=1)
-
-test.states = lstm.forward.pass(as.matrix(X.test, ncol=1), lstm, hidden.size, h=h, C=C)
-test.mse = mean((y.test-test.states$yhat)^2)
-
-
-mean(y.test^2)
-test.mse
-
-```
-
-```{r}
-
-
-
-
-```
-
-
-
 
 
