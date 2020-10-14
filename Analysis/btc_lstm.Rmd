@@ -16,7 +16,7 @@ hist(snp$perc, breaks=200)
 
 
 ```{r}
-set.seed(1)
+set.seed(69)
 dat = snp$perc
 #dat = observations[1:1000]
 
@@ -76,8 +76,9 @@ print(paste("Final CV mse just 0:", cv.0/CV$nsteps))
 
 
 ```{r}
-set.seed(1)
-hidden.size=1
+set.seed(69)
+hidden.size = 1
+lstm = init.lstm(1, hidden.size)
 
 test.ind = CV$test_set$test_window
 
@@ -108,7 +109,6 @@ X.test = matrix(X.test, ncol=1)
 
 test.states = lstm.forward.pass(as.matrix(X.test, ncol=1), lstm, hidden.size, h=h, C=C)
 test.mse = mean((y.test-test.states$yhat)^2)
-
 
 mean(y.test^2)
 test.mse

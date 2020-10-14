@@ -5,7 +5,7 @@ gamma = matrix(c(0.03, 0.03, 0.94,
 
 #define means and standard deviations for the different states
 means = c(-5, 0, 5)
-sds = c(1, 1, 1)
+sds = c(0.5, 0.5, 0.5)
 
 #initialize variables
 set.seed(2)
@@ -17,7 +17,7 @@ observations = numeric(N)
 #set first state to S_1
 actual.states[1] = 1
 #generate first observation
-observation[1] = dnorm(1, means[1], sds[1])
+observations[1] = dnorm(1, means[1], sds[1])
 #i'th index of delta gives probability of being in state S_i
 delta = matrix(c(1, 0, 0), nrow=1, byrow=T)
 

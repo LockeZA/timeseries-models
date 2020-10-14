@@ -2,20 +2,20 @@ init.lstm = function(input.size, hidden.size){
   #calculate number of weights at each gate
   n.weights = (input.size + hidden.size)*hidden.size
   lstm = list(
-    a.W = matrix(rnorm(n.weights), ncol=hidden.size),
-    a.b = matrix(rnorm(hidden.size), ncol=hidden.size),
+    a.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    a.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    i.W = matrix(rnorm(n.weights), ncol=hidden.size),
-    i.b = matrix(rnorm(hidden.size), ncol=hidden.size),
+    i.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    i.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    f.W = matrix(rnorm(n.weights), ncol=hidden.size),
-    f.b = matrix(rnorm(hidden.size), ncol=hidden.size),
+    f.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    f.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    o.W = matrix(rnorm(n.weights), ncol=hidden.size),
-    o.b = matrix(rnorm(hidden.size), ncol=hidden.size),
+    o.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    o.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    p.W = matrix(rnorm(hidden.size), nrow=hidden.size),
-    p.b = matrix(rnorm(1), ncol=1)
+    p.W = matrix(rnorm(hidden.size, sd=0.1), nrow=hidden.size),
+    p.b = matrix(rnorm(1,sd=0.1), ncol=1)
   )
   return(lstm)
 }

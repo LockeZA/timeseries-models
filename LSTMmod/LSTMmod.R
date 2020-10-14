@@ -1,39 +1,39 @@
-init.lstm.mod = function(input.size, hidden.size, delta.hidden.size ,delta.size){
+init.lstm.mod = function(input.size, hidden.size ,delta.size){
   #calculate number of weights at each gate
   n.weights = (input.size + hidden.size)*hidden.size
   lstm = list(
-    a.W = matrix(rnorm(n.weights, sd=0.01), ncol=hidden.size),
-    a.b = matrix(rnorm(hidden.size, sd=0.01), ncol=hidden.size),
+    a.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    a.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    i.W = matrix(rnorm(n.weights, sd=0.01), ncol=hidden.size),
-    i.b = matrix(rnorm(hidden.size, sd=0.01), ncol=hidden.size),
+    i.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    i.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    f.W = matrix(rnorm(n.weights, sd=0.01), ncol=hidden.size),
-    f.b = matrix(rnorm(hidden.size, sd=0.01), ncol=hidden.size),
+    f.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    f.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    o.W = matrix(rnorm(n.weights, sd=0.01), ncol=hidden.size),
-    o.b = matrix(rnorm(hidden.size, sd=0.01), ncol=hidden.size),
+    o.W = matrix(rnorm(n.weights, sd=0.1), ncol=hidden.size),
+    o.b = matrix(rnorm(hidden.size, sd=0.1), ncol=hidden.size),
     
-    d.h.W = matrix(rnorm(hidden.size*delta.hidden.size, sd=0.01), nrow=hidden.size),
-    d.h.b = matrix(rnorm(delta.hidden.size, sd=0.01), ncol=delta.hidden.size),
+    d.W = matrix(rnorm((delta.size+hidden.size)*delta.size, sd=0.1), ncol=delta.size),
+    d.b = matrix(rnorm(delta.size, sd=0.1), ncol=delta.size),
     
-    d.W = matrix(rnorm(delta.hidden.size*delta.size, sd=0.01), nrow=delta.hidden.size),
-    d.b = matrix(rnorm(delta.size, sd=0.01), ncol=delta.size),
-    
-    mu = rep(0, delta.size),
-    v = rep(2, delta.size),
-    k = rep(3, delta.size)
+    mu = rnorm(delta.size, sd=2),
+    v = rep(3, delta.size),
+    k = rep(4, delta.size)
   )
   return(lstm)
 }
 
-mod.forward.pass = function(x, lstm, h=NULL, C=NULL){
+mod.forward.pass = function(x, lstm, h=NULL, C=NULL, d=NULL){
   
   if (is.null(h)){
     h = matrix(0, ncol=ncol(lstm$f.W))
   }
   if (is.null(C)){
     C = matrix(0, ncol=ncol(lstm$f.W))
+  }
+  if (is.null(d)){
+    d = matrix(1/ncol(lstm$f.W), ncol=ncol(lstm$d.W))
   }
   xh = cbind(x, h)
   #calculate value at forget gate
@@ -48,8 +48,8 @@ mod.forward.pass = function(x, lstm, h=NULL, C=NULL){
   o = sigmoid(xh%*%lstm$o.W+lstm$o.b)
   #update hidden state
   h = o*tanh(C)
-  #get hidden layer vector
-  dh = sigmoid(h%*%lstm$d.h.W + lstm$d.h.b)
+  #concat delta and hidden state
+  dh = cbind(d, h)
   #get output layer
   delta = softmax(dh%*%lstm$d.W + lstm$d.b)
   #get prediction
@@ -58,7 +58,7 @@ mod.forward.pass = function(x, lstm, h=NULL, C=NULL){
   return(list(yhat=yhat, delta=delta, h=h, C=C))
 }
 
-lstm = init.lstm.mod(1, 1, 4, 3)
+lstm = init.lstm.mod(1, 1, 3)
 x = rnorm(1)
 mod.forward.pass(x, lstm)
 

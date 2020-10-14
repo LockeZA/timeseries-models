@@ -8,19 +8,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-install.packages("varhandle")
-library(varhandle)
-
-```
-
-```{r}
 snp = read.csv("snp500weekly.csv")
 #btc$perc = (btc$close-btc$open)/btc$open*100
 snp$perc = (snp$Close-snp$Open)/snp$Open*100
 hist(snp$perc, breaks=200)
-```
-```{r}
-snp$perc = round(snp$perc, 2)
 ```
 
 ```{r}
@@ -29,23 +20,23 @@ t3 = function(x, mu, v, k){
   den = k*sqrt(pi*v)*gamma(v/2)*(1+((x-mu)/k)^2/v)^((v+1)/2)
   return(num/den)
 }
-x = seq(-10, 30, length=100)
-y = unlist(lapply(x, t3, mu=0, v=300, k=5))
-plot(x, y)
+#x = seq(-10, 30, length=100)
+#y = unlist(lapply(x, t3, mu=0, v=300, k=0.31))
+#plot(x, y)
 ```
 
 
 ```{r}
 #set seed for reproducibility
-set.seed(2020)
+set.seed(128)
 dat = snp$perc
 #dat = observations[1:1000]
 CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
 dens = t3
-nstates = 7
+nstates = 6
 parlist = list(
   tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
-  mu = runif(nstates, -5, 5),
+  mu = runif(nstates, -1, 1),
   v = rep(6, nstates),
   k = rep(10, nstates)
 )
@@ -100,18 +91,16 @@ for (i in 1:CV$nsteps){
 print(paste("Final CV mse:", cv.mse/CV$nsteps))
 print(paste("Final CV mse just 0:", cv.0/CV$nsteps))
 ```
-
-
 ```{r}
-set.seed(2020)
+set.seed(128)
 
-nstates = 6
-parlist = list(
-  tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
-  mu = runif(nstates, -5, 5),
-  v = rep(6, nstates),
-  k = rep(10, nstates)
-)
+#nstates = 6
+#parlist = list(
+#  tpm=matrix(rep(1/nstates, nstates^2), ncol=nstates, byrow=T),
+#  mu = runif(nstates, -1, 1),
+#  v = rep(6, nstates),
+#  k = rep(10, nstates)
+#)
 
 test.ind = CV$test_set$test_window
 
@@ -143,13 +132,10 @@ mean(y.actual.test^2)
 ```
 
 ```{r}
-
-
-round(hmm$tpm, 3)
-
-
-
+#this contains the hmm parameters
+hmm
 
 ```
 
-Use seed 2021 for 6 states
+
+126, 6 states

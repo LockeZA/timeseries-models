@@ -9,23 +9,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 snp = read.csv("snp500weekly.csv")
-#btc$perc = (btc$close-btc$open)/btc$open*100
 snp$perc = (snp$Close-snp$Open)/snp$Open*100
 hist(snp$perc, breaks=200)
 ```
 
 ```{r}
-set.seed(2020)
+set.seed(518)
 dat = snp$perc
-#dat = observations[1:100]
+#dat = observations[1:500]
 
 CV = validation_sets(dat, 1:length(dat), fracs=c(0.7,0.2,0.1), window=0.05)
 
-hidden.size = 3
-delta.hidden.size = 3
-delta.size = 3
+hidden.size = 1
+delta.size = 5
 
-lstm = init.lstm.mod(1, hidden.size, delta.hidden.size, delta.size)
+lstm = init.lstm.mod(1, hidden.size, delta.size)
 cv.mse = 0
 cv.0 = 0
 
@@ -47,9 +45,12 @@ for (i in 1:CV$nsteps){
   train.states = lstm.mod.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size, delta.size)
   h = train.states$hs[nrow(train.states$hs), ]
   C = train.states$Cs[nrow(train.states$Cs), ]
+  d = train.states$delta[nrow(train.states$delta), ]
   
   h = matrix(h, nrow=1)
   C = matrix(C, nrow=1)
+  d = matrix(d, nrow=1)
+  
   train.mse = mean((train.states$yhat[1:(N-1)]-y.train)^2)
   
   N = length(val.set)
@@ -57,7 +58,7 @@ for (i in 1:CV$nsteps){
   X.val = val.set[1:(N-1)]
   X.val = matrix(X.val, ncol=1)
   
-  val.states = lstm.mod.forward.pass(as.matrix(X.val, ncol=1), lstm, hidden.size, delta.size, h=h, C=C)
+  val.states = lstm.mod.forward.pass(as.matrix(X.val, ncol=1), lstm, hidden.size, delta.size, h=h, C=C, d=d)
   val.mse = mean((y.val-val.states$yhat)^2)
   
   train.0 = mean((y.train)^2)
@@ -77,3 +78,57 @@ print(paste("Final CV mse just 0:", cv.0/CV$nsteps))
 ```
 
 
+```{r}
+#keep seed set
+set.seed(518)
+hidden.size = 1
+delta.size = 5
+
+lstm = init.lstm.mod(1, hidden.size, delta.size)
+test.ind = CV$test_set$test_window
+
+train.set = dat[-test.ind]
+test.set = dat[test.ind]
+
+N = length(train.set)
+
+y.train = train.set[2:N]
+X.train = train.set[1:(N-1)]
+X.train = matrix(X.train, ncol=1)
+
+fit = lstm.mod.fit(y.train, X.train, lstm)
+lstm = fit$LSTM
+
+train.states = lstm.mod.forward.pass(as.matrix(train.set, ncol=1), lstm, hidden.size, delta.size)
+h = train.states$hs[nrow(train.states$hs), ]
+C = train.states$Cs[nrow(train.states$Cs), ]
+d = train.states$delta[nrow(train.states$delta), ]
+
+train.mse = mean((train.states$yhat[1:(N-1)]-y.train)^2)
+
+h = matrix(h, nrow=1)
+C = matrix(C, nrow=1)
+d = matrix(d, nrow=1)
+
+N = length(test.set)
+y.test = test.set[2:N]
+X.test = test.set[1:(N-1)]
+X.test = matrix(X.test, ncol=1)
+
+test.states = lstm.mod.forward.pass(as.matrix(X.test, ncol=1), lstm, hidden.size, delta.size, h=h, C=C, d=d)
+test.mse = mean((y.test-test.states$yhat)^2)
+
+train.mse
+mean(y.test^2)
+test.mse
+```
+
+```{r}
+#this contains the parameters of the trained model
+lstm
+#mu, v and k are the parameters of the 3 param t distribution
+#Note that lstm$k and lstm$v return the logs of the actual values so you have to exp them
+
+#this contains the values that the model returns at each time step
+train.states
+```

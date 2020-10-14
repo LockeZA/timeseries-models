@@ -16,8 +16,18 @@ hmm.fit = function(x, parlist, np2wp.fn, wp2np.fn, mean.fn, var.fn, dens){
   parvec_ind = vectorfy(parlist)
   parvec = parvec_ind$parvec
   ind = parvec_ind$ind
-  fit = optim(parvec, hmm.optimizable, ind=ind, wp2np.fn=wp2np.fn, x=x, dens=dens, control=list(maxit=500), method="BFGS")
-  parvec = fit$par
+  conv = 1
+  it = 0
+  
+  while(conv == 1){
+    it = it + 1
+    print(it)
+    fit = nlm(hmm.optimizable, parvec, ind=ind, wp2np.fn=wp2np.fn, x=x, dens=dens)
+    print(-fit$minimum)
+    parvec = fit$estimate
+    break
+  }
+  parvec = fit$estimate
   parlist = listify(parvec, ind)
   parlist = hmm.wp2np(parlist, wp2np.fn)
   state.params = within(parlist, rm(tpm))
@@ -25,10 +35,8 @@ hmm.fit = function(x, parlist, np2wp.fn, wp2np.fn, mean.fn, var.fn, dens){
 
   return(list(dens=dens, tpm=tpm, state.params=state.params, 
               mean.fn=mean.fn, var.fn=var.fn, 
-              nstates=nrow(tpm), convergence=fit$convergence, ll=-fit$value))
+              nstates=nrow(tpm), convergence=fit$convergence, ll=-fit$minimum))
 }
-
-
 
 
 
